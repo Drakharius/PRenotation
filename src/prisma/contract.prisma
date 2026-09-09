@@ -1,21 +1,43 @@
 // use prisma-next
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  posts     Post[]
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+enum Status {
+  PENDING
+  CONFIRMED
+  CANCELED
 }
 
-model Post {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String?
-  author    User     @relation(fields: [authorId], references: [id])
-  authorId  Int
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+enum ResourceType {
+  SINGLE_ROOM
+  DOUBLE_ROOM
+  ENTIRE_HOUSE
+  APARTMENT
+}
+
+model User {
+  id       Int  @id @default(autoincrement())
+  email    String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bookings Booking[]
+}
+
+model Resource{
+  id       Int  @id @default(autoincrement())
+  resource ResourceType
+  price Int
+  description String
+  isAvailable Boolean @default(true)
+  bookings Booking[]
+}
+
+model Booking {
+  id       Int  @id @default(autoincrement())
+  userId   Int
+  user User @relation(fields: [userId], references:[id])
+  resourceId Int
+  resource Resource @relation(fields:[resourceId], references:[id])
+  status Status @default(PENDING)
+  startTime DateTime
+  endTime DateTime
 }
