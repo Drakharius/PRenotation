@@ -1,26 +1,64 @@
-import { Injectable } from '@nestjs/common';
-import { CreateResourceDto } from './dto/create-resource.dto';
-import { UpdateResourceDto } from './dto/update-resource.dto';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { CreateResourceDto } from "./dto/create-resource.dto";
+import { UpdateResourceDto } from "./dto/update-resource.dto";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class ResourcesService {
-  create(createResourceDto: CreateResourceDto) {
-    return 'This action adds a new resource';
+  constructor(
+    @Inject(PrismaService) private readonly prismaService: PrismaService,
+  ) {}
+
+  async create(data: CreateResourceDto) {
+    const resource = await this.prismaService.db.orm.public.Resource.create({
+      description: data.description,
+      price: data.price,
+      resource: data.resource,
+    });
+    return resource;
+  }
+  async findAll() {
+    const resources = await this.prismaService.db.orm.public.Resource.all();
+    return resources;
   }
 
-  findAll() {
-    return `This action returns all resources`;
+  async findOne(resourceId: number) {
+    const resource = await this.prismaService.db.orm.public.Resource.where({
+      id: resourceId,
+    }).first();
+
+    if (!resource) {
+      throw new NotFoundException("Resource not found");
+    }
+    return resource;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} resource`;
+  async update(resourceId: number, updateResourceDto: UpdateResourceDto) {
+    const resourceUpdate =
+      await this.prismaService.db.orm.public.Resource.where({
+        id: resourceId,
+      }).update(updateResourceDto);
+
+    if (!resourceUpdate) {
+      throw new NotFoundException("Resource not found");
+    }
+
+    return resourceUpdate;
   }
 
-  update(id: number, updateResourceDto: UpdateResourceDto) {
-    return `This action updates a #${id} resource`;
-  }
+  async delete(resourceId: number) {
+    const resource = await this.prismaService.db.orm.public.Resource.where({
+      id: resourceId,
+    }).delete();
 
-  remove(id: number) {
-    return `This action removes a #${id} resource`;
+    if (!resource) {
+      throw new NotFoundException("Resource not found");
+    }
+    return console.log("Resource deleted successfully");
   }
 }

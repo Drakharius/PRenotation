@@ -1,11 +1,28 @@
-import { Injectable } from "@nestjs/common";
-import { db, listUsers, type StarterUser } from "./prisma/users";
+// import { Injectable } from "@nestjs/common";
+// import type { OnModuleInit, OnApplicationShutdown } from "@nestjs/common";
+// import { db, connectDatabase } from "./prisma/db.js";
+// import { listUsers, type StarterUser } from "./prisma/users.js";
 
-@Injectable()
-export class PrismaService {
-  readonly db = db;
+// @Injectable()
+// export class PrismaService implements OnModuleInit, OnApplicationShutdown {
+//   readonly db = db;
 
-  listUsers(limit = 10): Promise<StarterUser[]> {
-    return listUsers(limit);
-  }
-}
+//   async onModuleInit() {
+//     // Usa la funzione di connessione definita in db.ts con protezione singleton
+//     await connectDatabase();
+//   }
+
+//   async onApplicationShutdown() {
+//     if (typeof this.db.close === "function") {
+//       try {
+//         await this.db.close();
+//       } catch {
+//         // Ignora errori alla chiusura dell'app
+//       }
+//     }
+//   }
+
+//   listUsers(limit = 10): Promise<StarterUser[]> {
+//     return listUsers(limit);
+//   }
+// }

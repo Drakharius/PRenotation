@@ -1,34 +1,49 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ResourcesService } from './resources.service';
-import { CreateResourceDto } from './dto/create-resource.dto';
-import { UpdateResourceDto } from './dto/update-resource.dto';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Inject,
+} from "@nestjs/common";
+import { ResourcesService } from "./resources.service";
+import { CreateResourceDto } from "./dto/create-resource.dto";
+import { UpdateResourceDto } from "./dto/update-resource.dto";
 
-@Controller('resources')
+@Controller("resources")
 export class ResourcesController {
-  constructor(private readonly resourcesService: ResourcesService) {}
+  constructor(
+    @Inject(ResourcesService)
+    private readonly resourcesServicer: ResourcesService,
+  ) {}
 
   @Post()
-  create(@Body() createResourceDto: CreateResourceDto) {
-    return this.resourcesService.create(createResourceDto);
+  async create(@Body() createResourceDto: CreateResourceDto) {
+    return await this.resourcesServicer.create(createResourceDto);
   }
 
   @Get()
-  findAll() {
-    return this.resourcesService.findAll();
+  async findAll() {
+    return await this.resourcesServicer.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.resourcesService.findOne(+id);
+  @Get(":id")
+  async findOne(@Param("id") id: number) {
+    return await this.resourcesServicer.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateResourceDto: UpdateResourceDto) {
-    return this.resourcesService.update(+id, updateResourceDto);
+  @Patch(":id")
+  async update(
+    @Param("id") id: number,
+    @Body() updateResourceDto: UpdateResourceDto,
+  ) {
+    return await this.resourcesServicer.update(id, updateResourceDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.resourcesService.remove(+id);
+  @Delete(":id")
+  async remove(@Param("id") id: number) {
+    return await this.resourcesServicer.delete(id);
   }
 }

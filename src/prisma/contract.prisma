@@ -14,30 +14,29 @@ enum ResourceType {
 }
 
 model User {
-  id       Int  @id @default(autoincrement())
-  email    String @unique
-  password String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  bookings Booking[]
+  id       Int      @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  bookings  Booking[]
 }
 
-model Resource{
-  id       Int  @id @default(autoincrement())
-  resource ResourceType
-  price Int
+model Resource {
+  id          Int      @id @default(autoincrement())
+  resource    ResourceType
+  price       Int
   description String
-  isAvailable Boolean @default(true)
-  bookings Booking[]
+  isAvailable Boolean      @default(true)
+  bookings    Booking[]
 }
 
 model Booking {
-  id       Int  @id @default(autoincrement())
-  userId   Int
-  user User @relation(fields: [userId], references:[id])
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id])
   resourceId Int
-  resource Resource @relation(fields:[resourceId], references:[id])
-  status Status @default(PENDING)
-  startTime DateTime
-  endTime DateTime
+  resource   Resource @relation(fields: [resourceId], references: [id])
+  status     Status   @default(PENDING)
+  startTime  DateTime
+  endTime    DateTime
 }

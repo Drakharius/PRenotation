@@ -3,9 +3,6 @@ import { defineConfig as ormConfig } from "@prisma/orm-postgres/config";
 import "dotenv/config";
 
 export default definePrismaConfig({
-  skills: {
-    agents: ["claude", "cursor", "agents", "devin"],
-  },
   orm: ormConfig({
     contract: "./src/prisma/contract.prisma",
     db: {
