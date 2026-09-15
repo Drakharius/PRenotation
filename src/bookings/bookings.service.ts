@@ -1,26 +1,82 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBookingDto } from './dto/create-booking.dto';
-import { UpdateBookingDto } from './dto/update-booking.dto';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { CreateBookingDto } from "./dto/create-booking.dto";
+import { UpdateBookingDto } from "./dto/update-booking.dto";
+import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class BookingsService {
-  create(createBookingDto: CreateBookingDto) {
-    return 'This action adds a new booking';
+  constructor(
+    @Inject(PrismaService) private readonly prismaService: PrismaService,
+  ) {}
+
+  async create(data: CreateBookingDto) {
+    const resourceExists =
+      await this.prismaService.db.orm.public.Resource.where({
+        id: data.resourceId,
+      }).first();
+
+    if (!resourceExists) {
+      throw new NotFoundException("La risorsa richiesta non esiste");
+    }
+
+    const existingBooking =
+      await this.prismaService.db.orm.public.Booking.where({
+        resourceId: data.resourceId,
+        status: "CONFIRMED",
+      }).first();
+
+    if (existingBooking) {
+      throw new ConflictException("La risorsa è già prenotata");
+    }
+
+    if (data.isImmediate) {
+      const resource = await this.prismaService.db.orm.public.Booking.create({
+        resourceId: data.resourceId,
+        userId: data.userId,
+        status: "CONFIRMED",
+      });
+      return resource;
+    }
+    const resource = await this.prismaService.db.orm.public.Booking.create({
+      resourceId: data.resourceId,
+      userId: data.userId,
+    });
+
+    return resource;
   }
 
-  findAll() {
-    return `This action returns all bookings`;
+  async findAll() {
+    const prenotation = await this.prismaService.db.orm.public.Booking.all();
+    return prenotation;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} booking`;
+  async findOne(resourceId: number) {
+    const prenotation = await this.prismaService.db.orm.public.Booking.where({
+      id: resourceId,
+    }).first();
+
+    if (!prenotation) {
+      throw new NotFoundException("Reservation not found");
+    }
+    return prenotation;
   }
 
-  update(id: number, updateBookingDto: UpdateBookingDto) {
-    return `This action updates a #${id} booking`;
-  }
+  async update(resourceId: number, updateResourceDto: UpdateBookingDto) {
+    const resourceUpdate = await this.prismaService.db.orm.public.Booking.where(
+      {
+        id: resourceId,
+      },
+    ).update(updateResourceDto);
 
-  remove(id: number) {
-    return `This action removes a #${id} booking`;
+    if (!resourceUpdate) {
+      throw new NotFoundException("Reservation not found");
+    }
+
+    return resourceUpdate;
   }
 }
