@@ -4,10 +4,13 @@ export class CreateBookingDto {
   @IsNumber()
   resourceId: number;
 
-  @IsNumber()
-  userId: number;
-
   @IsOptional()
   @IsBoolean()
   isImmediate?: boolean;
+
+  @IsNumber()
+  startTime: string;
+
+  @IsNumber()
+  endTime: string;
 }
