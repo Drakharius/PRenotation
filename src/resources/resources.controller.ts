@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Inject,
+  Req,
+  Query,
 } from "@nestjs/common";
 import { ResourcesService } from "./resources.service";
 import { CreateResourceDto } from "./dto/create-resource.dto";
@@ -30,7 +32,8 @@ export class ResourcesController {
   }
 
   @Get(":id")
-  async findOne(@Param("id") id: number) {
+  async findOne(@Param("id") id: number, @Query() query: any, @Req() req: any) {
+    console.log("richiesta:", req);
     return await this.resourcesServicer.findOne(id);
   }
 

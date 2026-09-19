@@ -1,82 +1,75 @@
 import {
+  Injectable,
   ConflictException,
   Inject,
-  Injectable,
-  NotFoundException,
+  forwardRef,
 } from "@nestjs/common";
 import { CreateBookingDto } from "./dto/create-booking.dto";
-import { UpdateBookingDto } from "./dto/update-booking.dto";
 import { PrismaService } from "../prisma/prisma.service";
+import { RedisService } from "../redis/redis.service";
 
 @Injectable()
 export class BookingsService {
   constructor(
     @Inject(PrismaService) private readonly prismaService: PrismaService,
+    @Inject(forwardRef(() => RedisService))
+    private readonly redisService: RedisService,
   ) {}
 
-  async create(data: CreateBookingDto) {
-    const resourceExists =
-      await this.prismaService.db.orm.public.Resource.where({
-        id: data.resourceId,
-      }).first();
+  async create(userId: number, dto: CreateBookingDto) {
+    const lockKey = `lock:resource:${dto.resourceId}:${dto.startTime}`;
+    const lockToken = await this.redisService.acquireLock(lockKey, 5000);
 
-    if (!resourceExists) {
-      throw new NotFoundException("La risorsa richiesta non esiste");
+    if (!lockToken) {
+      throw new ConflictException(
+        "Un altro utente sta elaborando una prenotazione per questo orario. Riprova tra qualche istante.",
+      );
     }
 
-    const existingBooking =
-      await this.prismaService.db.orm.public.Booking.where({
-        resourceId: data.resourceId,
-        status: "CONFIRMED",
-      }).first();
+    try {
+      // 1. Converti la stringa ISO ricevuta dal DTO in un oggetto Temporal.Instant
+      const startInstant = Temporal.Instant.from(dto.startTime);
+      const endInstant = Temporal.Instant.from(dto.endTime);
 
-    if (existingBooking) {
-      throw new ConflictException("La risorsa è già prenotata");
-    }
+      // 2. Controllo disponibilità nel DB
+      const existingBooking =
+        await this.prismaService.db.orm.public.Booking.where({
+          resourceId: dto.resourceId,
+          startTime: startInstant, // 👈 Deve essere l'oggetto startInstant, NON una stringa
+          status: "CONFIRMED",
+        }).first();
 
-    if (data.isImmediate) {
-      const resource = await this.prismaService.db.orm.public.Booking.create({
-        resourceId: data.resourceId,
-        userId: data.userId,
+      if (existingBooking) {
+        throw new ConflictException(
+          "La risorsa è già stata prenotata per questo orario.",
+        );
+      }
+
+      // 3. Creazione record
+      const newBooking = await this.prismaService.db.orm.public.Booking.create({
+        userId: userId,
+        resourceId: dto.resourceId,
+        startTime: startInstant, // 👈 Passiamo l'oggetto Temporal.Instant
+        endTime: endInstant, // 👈 Passiamo l'oggetto Temporal.Instant
         status: "CONFIRMED",
       });
-      return resource;
-    }
-    const resource = await this.prismaService.db.orm.public.Booking.create({
-      resourceId: data.resourceId,
-      userId: data.userId,
-    });
 
-    return resource;
+      await this.redisService.set(
+        `cache:booking:${newBooking.id}`,
+        JSON.stringify(newBooking),
+        3600,
+      );
+      return newBooking;
+    } finally {
+      await this.redisService.releaseLock(lockKey, lockToken);
+    }
   }
 
   async findAll() {
-    const prenotation = await this.prismaService.db.orm.public.Booking.all();
-    return prenotation;
+    return await this.prismaService.db.orm.public.Booking.all();
   }
 
-  async findOne(resourceId: number) {
-    const prenotation = await this.prismaService.db.orm.public.Booking.where({
-      id: resourceId,
-    }).first();
-
-    if (!prenotation) {
-      throw new NotFoundException("Reservation not found");
-    }
-    return prenotation;
-  }
-
-  async update(resourceId: number, updateResourceDto: UpdateBookingDto) {
-    const resourceUpdate = await this.prismaService.db.orm.public.Booking.where(
-      {
-        id: resourceId,
-      },
-    ).update(updateResourceDto);
-
-    if (!resourceUpdate) {
-      throw new NotFoundException("Reservation not found");
-    }
-
-    return resourceUpdate;
+  async findOne(id: number) {
+    return await this.prismaService.db.orm.public.Booking.where({ id }).first();
   }
 }
